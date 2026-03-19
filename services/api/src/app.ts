@@ -8,7 +8,8 @@ import {
   publishValidatedBatch, validateNormalizedBatch
 } from '@footie/data-ingestion';
 import {
-  getDb, matchRepo, teamRepo, competitionRepo, seasonRepo, playerRepo, searchRepo
+  getDb, matchRepo, teamRepo, competitionRepo, seasonRepo, playerRepo, searchRepo,
+  teamDetailRepo, playerDetailRepo, managerRepo
 } from '@footie/db';
 import {
   startLiveMatch, getLiveMatch, getAllLiveMatches, type MatchEvent
@@ -23,6 +24,9 @@ const compR = competitionRepo(db);
 const seasonR = seasonRepo(db);
 const playerR = playerRepo(db);
 const search = searchRepo();
+const teamDetailR = teamDetailRepo(db);
+const playerDetailR = playerDetailRepo(db);
+const managerR = managerRepo(db);
 
 // ─── Fastify ──────────────────────────────────────────────────────────────────
 const server = Fastify({ logger: { level: 'warn' } });
@@ -32,7 +36,7 @@ await server.register(cors, { origin: true });
 const WINDOW = { startsAt: '2026-03-19T00:00:00Z', endsAt: '2026-03-20T00:00:00Z', mode: 'incremental' as const };
 const runPipeline = async () => {
   const adapter = new FixtureProviderAdapter();
-  const envelopes = await adapter.fetchMatches(WINDOW);
+  const envelopes = await adapter.fetchMatches();
   const batch = createBatch('batch_fixture_001', WINDOW, [...envelopes]);
   const normalized = normalizeFixtureBatch(batch);
   const validation = validateNormalizedBatch(normalized);
@@ -153,8 +157,75 @@ server.get('/api/matches', async (req) => {
   return { matches: enriched, meta: { total: enriched.length, competitions: new Set(enriched.map((m) => m.competition?.id)).size, teams: new Set([...enriched.map((m) => m.homeTeam?.id), ...enriched.map((m) => m.awayTeam?.id)]).size } };
 });
 
-server.get('/api/teams', async () => ({ teams: teamR.findAll(), meta: { total: teamR.findAll().length } }));
-server.get('/api/players', async () => ({ players: playerR.findAll(), meta: { total: playerR.findAll().length } }));
+server.get('/api/teams', async () => {
+  const rows = teamDetailR.findAll();
+  const teams = rows.map((r) => ({ ...r.team, manager: r.manager }));
+  return { teams, meta: { total: teams.length } };
+});
+
+server.get('/api/teams/:slug', async (req, reply) => {
+  const { slug } = req.params as { slug: string };
+  const row = teamDetailR.findBySlug(slug);
+  if (!row) return reply.status(404).send({ error: `Team '${slug}' not found` });
+  const squad = teamDetailR.getSquadWithStats(row.team.id, '2025-26');
+  const stats = calcTeamStats(slug);
+  const rows = matchR.findAll(500);
+  const recentMatches = rows
+    .filter((r) => r.match.homeTeamId === row.team.id || r.match.awayTeamId === row.team.id)
+    .filter((r) => r.match.status === 'finished')
+    .sort((a, b) => b.match.kickoffAt.localeCompare(a.match.kickoffAt))
+    .slice(0, 10)
+    .map((r) => ({
+      matchId: r.match.id, kickoffAt: r.match.kickoffAt,
+      homeTeam: teamR.findById(r.match.homeTeamId)?.name,
+      awayTeam: teamR.findById(r.match.awayTeamId)?.name,
+      homeScore: r.match.homeScore, awayScore: r.match.awayScore,
+      competition: compR.findById(r.match.competitionId)?.name
+    }));
+  return {
+    team: { ...row.team, manager: row.manager },
+    stats,
+    squad: squad.map((s) => ({ ...s.player, stats: s.stats })),
+    recentMatches
+  };
+});
+
+server.get('/api/players', async () => {
+  const rows = playerDetailR.findAll();
+  const players = rows.map((r) => ({ ...r.player, team: r.team }));
+  return { players, meta: { total: players.length } };
+});
+
+server.get('/api/players/:slug', async (req, reply) => {
+  const { slug } = req.params as { slug: string };
+  const row = playerDetailR.findBySlug(slug);
+  if (!row) return reply.status(404).send({ error: `Player '${slug}' not found` });
+  const stats = playerDetailR.getStats(row.player.id);
+  const career = playerDetailR.getCareer(row.player.id);
+  return {
+    player: { ...row.player, team: row.team },
+    stats,
+    career: career.map((c) => ({ ...c.stint, team: c.team }))
+  };
+});
+
+server.get('/api/managers', async () => {
+  const rows = managerR.findAll();
+  const managers = rows.map((r) => ({ ...r.manager, currentTeam: r.team }));
+  return { managers, meta: { total: managers.length } };
+});
+
+server.get('/api/managers/:slug', async (req, reply) => {
+  const { slug } = req.params as { slug: string };
+  const row = managerR.findBySlug(slug);
+  if (!row) return reply.status(404).send({ error: `Manager '${slug}' not found` });
+  const stints = managerR.getStints(row.manager.id);
+  return {
+    manager: { ...row.manager, currentTeam: row.team },
+    stints: stints.map((s) => ({ ...s.stint, team: s.team }))
+  };
+});
+
 server.get('/api/competitions', async () => ({ competitions: compR.findAll(), meta: { total: compR.findAll().length } }));
 
 // ─── Standings ────────────────────────────────────────────────────────────────

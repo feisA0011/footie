@@ -1,68 +1,90 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 const API = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001';
 
+interface Team { id: string; slug: string; name: string; primaryColor: string | null }
 interface Player {
-  id: string; displayName: string; primaryPosition: string | null;
-  birthDate: string | null; nationality: string | null;
+  id: string; slug: string; displayName: string; primaryPosition: string | null;
+  nationality: string | null; currentTeamId: string | null; heightCm: number | null;
+  team: Team | null;
 }
 
-const POSITION_COLORS: Record<string, string> = {
-  ST: '#ef4444', LW: '#f97316', RW: '#f97316', AM: '#eab308',
-  CM: '#3b82f6', DM: '#6366f1', LB: '#22c55e', RB: '#22c55e',
-  CB: '#14b8a6', GK: '#a855f7'
-};
+const POS_COLOR: Record<string, string> = { GK: '#f59e0b', DEF: '#3b82f6', MID: '#8b5cf6', FWD: '#ef4444', ATT: '#ef4444' };
+const POSITIONS = ['All', 'GK', 'DEF', 'MID', 'FWD'];
 
 export default function PlayersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
-  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState('All');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    fetch(`${API}/api/players`).then((r) => r.json()).then((d: { players: Player[] }) => setPlayers(d.players)).catch(() => {});
+    fetch(`${API}/api/players`).then((r) => r.json()).then((d: { players: Player[] }) => setPlayers(d.players));
   }, []);
 
-  const filtered = query.length >= 2
-    ? players.filter((p) => p.displayName.toLowerCase().includes(query.toLowerCase()) || (p.nationality ?? '').toLowerCase().includes(query.toLowerCase()))
-    : players;
+  const shown = useMemo(() =>
+    players.filter((p) =>
+      (filter === 'All' || p.primaryPosition === filter) &&
+      (search === '' || p.displayName.toLowerCase().includes(search.toLowerCase()) ||
+        p.team?.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.nationality?.toLowerCase().includes(search.toLowerCase()))
+    ), [players, filter, search]);
 
   return (
     <>
       <div className="hero">
-        <div className="hero-eyebrow">Intelligence Layer</div>
+        <div className="hero-eyebrow">Roster</div>
         <h1 className="hero-title">Players</h1>
-        <p className="hero-sub">{players.length} players indexed in canonical store with FTS search</p>
+        <p className="hero-sub">Every player across the top leagues — click to view detailed stats, xG, career history and more.</p>
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        {POSITIONS.map((pos) => (
+          <button key={pos} onClick={() => setFilter(pos)}
+            style={{ background: filter === pos ? (POS_COLOR[pos] ?? 'var(--accent)') : 'var(--surface)', border: `1px solid ${filter === pos ? (POS_COLOR[pos] ?? 'var(--accent)') : 'var(--border)'}`, borderRadius: 8, padding: '7px 14px', cursor: 'pointer', color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>
+            {pos}
+          </button>
+        ))}
       </div>
 
       <div className="search-bar" style={{ marginBottom: 24 }}>
-        <input type="text" placeholder="Filter by name or nationality..." value={query} onChange={(e) => setQuery(e.target.value)} />
-        <svg className="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-        </svg>
+        <input type="text" placeholder="Search players, teams, nationality..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <span className="search-icon">⌕</span>
       </div>
 
-      <div className="section-header"><span className="section-title">Roster ({filtered.length})</span></div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
-        {filtered.map((p) => (
-          <div key={p.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'var(--accent)' }}>
-                {p.displayName.split(' ').map((w) => w[0]).join('').slice(0, 2)}
+      {/* Player cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
+        {shown.map((p) => {
+          const color = p.team?.primaryColor ?? POS_COLOR[p.primaryPosition ?? ''] ?? '#6b7a99';
+          return (
+            <a key={p.id} href={`/players/${p.slug}`}
+              style={{ display: 'block', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, textDecoration: 'none', transition: 'border-color .15s, transform .15s' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = color; (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLAnchorElement).style.transform = 'none'; }}>
+              {/* Avatar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 11, background: `${color}22`, border: `2px solid ${color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 900, color, flexShrink: 0 }}>
+                  {p.displayName.split(' ').map((w) => w[0]).join('').slice(0, 2)}
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 800, lineHeight: 1.2 }}>{p.displayName}</div>
+                  {p.team && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{p.team.name}</div>}
+                </div>
               </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{p.displayName}</div>
-                <div style={{ fontSize: 11, color: 'var(--muted)' }}>{p.nationality ?? '—'}</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {p.primaryPosition && (
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 5, background: `${POS_COLOR[p.primaryPosition] ?? '#6b7a99'}22`, color: POS_COLOR[p.primaryPosition] ?? 'var(--muted)' }}>
+                    {p.primaryPosition}
+                  </span>
+                )}
+                {p.nationality && <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 5, background: 'var(--surface2)', color: 'var(--muted)' }}>{p.nationality}</span>}
+                {p.heightCm && <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 5, background: 'var(--surface2)', color: 'var(--muted)' }}>{p.heightCm}cm</span>}
               </div>
-              {p.primaryPosition && (
-                <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: POSITION_COLORS[p.primaryPosition] ?? 'var(--muted)', background: 'var(--surface2)', padding: '2px 8px', borderRadius: 4 }}>
-                  {p.primaryPosition}
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'monospace' }}>{p.id}</div>
-            {p.birthDate && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Born: {p.birthDate}</div>}
-          </div>
-        ))}
+            </a>
+          );
+        })}
+        {shown.length === 0 && <div className="empty" style={{ gridColumn: '1/-1' }}>No players found</div>}
       </div>
     </>
   );
