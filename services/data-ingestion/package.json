@@ -12,5 +12,8 @@
   },
   "dependencies": {
     "@footie/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0"
   }
 }

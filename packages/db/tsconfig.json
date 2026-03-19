@@ -2,9 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
     "paths": {
-      "@footie/domain": ["../../packages/domain/dist/index.d.ts"]
+      "@footie/domain": ["../../packages/domain/dist/index.d.ts"],
+      "@footie/data-ingestion": ["../../services/data-ingestion/dist/index.d.ts"]
     }
   },
   "include": ["src/**/*.ts"],
