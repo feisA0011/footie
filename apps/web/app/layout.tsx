@@ -15,6 +15,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <span className="nav-logo">⚽ <span>footie</span></span>
             <div className="nav-links">
               <a href="/">Matches</a>
+              <a href="/players">Players</a>
+              <a href="/narrative">Narrative</a>
               <a href="/pipeline">Pipeline</a>
               <a href="/capabilities">API</a>
             </div>
