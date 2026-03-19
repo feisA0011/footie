@@ -6,11 +6,20 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "dev": "tsx src/app.ts",
+    "start": "node dist/app.js",
     "build": "tsc -p tsconfig.json",
     "lint": "tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@footie/domain": "workspace:*"
+    "@fastify/cors": "^11.2.0",
+    "@footie/data-ingestion": "workspace:*",
+    "@footie/domain": "workspace:*",
+    "fastify": "^5.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsx": "^4.21.0"
   }
 }

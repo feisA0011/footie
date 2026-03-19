@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "packageManager": "pnpm@10.13.1",
   "scripts": {
+    "dev": "turbo run dev --parallel",
     "build": "node scripts/typecheck.mjs --emit",
     "lint": "node scripts/validate-repo.mjs",
     "typecheck": "node scripts/typecheck.mjs",
