@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
-import { resolve } from 'node:path';
+import { resolveDbPath } from '../path.js';
 
-const DB_PATH = process.env['FOOTIE_DB_PATH'] ?? resolve(process.cwd(), 'footie.db');
+const DB_PATH = resolveDbPath();
 
 export interface SearchResult {
   entityId: string;

@@ -13,12 +13,24 @@ interface Match {
   competition: Competition; season: Season;
 }
 interface SearchResult { entityId: string; entityType: string; displayName: string }
+interface MatchesResponse { matches?: Match[] }
+interface SearchResponse { results?: SearchResult[] }
 
 function initials(name: string) {
   return name.split(' ').map((w) => w[0]).join('').slice(0, 3).toUpperCase();
 }
 function formatKickoff(iso: string) {
   return new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC';
+}
+function getCompetitions(matches: Match[]) {
+  const competitions = new Map<string, { slug: string; name: string }>();
+  for (const match of matches) {
+    const slug = match.competition?.slug;
+    const name = match.competition?.name;
+    if (!slug || !name || competitions.has(slug)) continue;
+    competitions.set(slug, { slug, name });
+  }
+  return [...competitions.values()];
 }
 function StatusBadge({ status }: { status: string }) {
   const cls = status === 'live' ? 'status-live' : status === 'finished' ? 'status-finished' : 'status-scheduled';
@@ -35,10 +47,33 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     fetch(`${API}/api/matches`)
-      .then((r) => r.json())
-      .then((d: { matches: Match[] }) => { setMatches(d.matches); setFiltered(d.matches); setLoading(false); })
-      .catch(() => { setError('API offline — run: cd services/api && pnpm dev'); setLoading(false); });
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`Matches request failed with ${r.status}`);
+        return r.json() as Promise<MatchesResponse>;
+      })
+      .then((d) => {
+        if (!Array.isArray(d.matches)) throw new Error('Invalid matches payload');
+        if (cancelled) return;
+        setMatches(d.matches);
+        setFiltered(d.matches);
+        setError(null);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setMatches([]);
+        setFiltered([]);
+        setError('API unavailable — check services/api and database bootstrap.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -48,16 +83,31 @@ export default function HomePage() {
 
   useEffect(() => {
     if (searchQuery.length < 2) { setSearchResults([]); return; }
+    let cancelled = false;
+
     const t = setTimeout(() => {
       fetch(`${API}/api/search?q=${encodeURIComponent(searchQuery)}`)
-        .then((r) => r.json())
-        .then((d: { results: SearchResult[] }) => setSearchResults(d.results))
-        .catch(() => {});
+        .then(async (r) => {
+          if (!r.ok) return { results: [] } as SearchResponse;
+          return r.json() as Promise<SearchResponse>;
+        })
+        .then((d) => {
+          if (!cancelled) {
+            setSearchResults(Array.isArray(d.results) ? d.results : []);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setSearchResults([]);
+        });
     }, 300);
-    return () => clearTimeout(t);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [searchQuery]);
 
-  const competitions = [...new Set(matches.map((m) => JSON.stringify({ slug: m.competition?.slug, name: m.competition?.name })))].map((s) => JSON.parse(s) as { slug: string; name: string });
+  const competitions = getCompetitions(matches);
 
   return (
     <>

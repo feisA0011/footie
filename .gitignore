@@ -7,3 +7,6 @@ coverage
 *.db
 *.db-shm
 *.db-wal
+*.tsbuildinfo
+.codex
+.vercel

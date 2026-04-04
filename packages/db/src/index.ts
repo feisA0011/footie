@@ -1,5 +1,10 @@
+export { bootstrapDevDatabase } from './bootstrap.js';
 export { getDb } from './client.js';
 export type { Db } from './client.js';
+export { DEFAULT_DB_PATH, resolveDbPath } from './path.js';
 export * from './schema/index.js';
 export * from './repositories/matches.js';
 export * from './repositories/search.js';
+export * from './repositories/players.js';
+export * from './repositories/managers.js';
+export * from './repositories/teams.js';

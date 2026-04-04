@@ -19,11 +19,29 @@ export const seasons = sqliteTable('seasons', {
   createdAt: text('created_at').notNull()
 });
 
+export const managers = sqliteTable('managers', {
+  id: text('id').primaryKey(),
+  slug: text('slug').notNull().unique(),
+  name: text('name').notNull(),
+  nationality: text('nationality'),
+  birthDate: text('birth_date'),
+  description: text('description'),
+  currentTeamId: text('current_team_id'),
+  createdAt: text('created_at').notNull()
+});
+
 export const teams = sqliteTable('teams', {
   id: text('id').primaryKey(),
   slug: text('slug').notNull().unique(),
   name: text('name').notNull(),
   countryCode: text('country_code'),
+  founded: integer('founded'),
+  stadium: text('stadium'),
+  stadiumCapacity: integer('stadium_capacity'),
+  nickname: text('nickname'),
+  description: text('description'),
+  primaryColor: text('primary_color'),
+  managerId: text('manager_id'),
   createdAt: text('created_at').notNull()
 });
 
@@ -34,6 +52,10 @@ export const players = sqliteTable('players', {
   primaryPosition: text('primary_position'),
   birthDate: text('birth_date'),
   nationality: text('nationality'),
+  currentTeamId: text('current_team_id'),
+  heightCm: integer('height_cm'),
+  weightKg: integer('weight_kg'),
+  description: text('description'),
   createdAt: text('created_at').notNull()
 });
 
@@ -50,6 +72,64 @@ export const matches = sqliteTable('matches', {
   minutePlayed: integer('minute_played'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull()
+});
+
+export const playerStats = sqliteTable('player_stats', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  playerId: text('player_id').notNull().references(() => players.id),
+  teamId: text('team_id').notNull().references(() => teams.id),
+  seasonLabel: text('season_label').notNull(),
+  competitionSlug: text('competition_slug').notNull().default('premier-league'),
+  appearances: integer('appearances').notNull().default(0),
+  starts: integer('starts').notNull().default(0),
+  minutesPlayed: integer('minutes_played').notNull().default(0),
+  goals: integer('goals').notNull().default(0),
+  assists: integer('assists').notNull().default(0),
+  shots: integer('shots').notNull().default(0),
+  shotsOnTarget: integer('shots_on_target').notNull().default(0),
+  xg: real('xg').notNull().default(0),
+  xa: real('xa').notNull().default(0),
+  passes: integer('passes').notNull().default(0),
+  passAccuracy: real('pass_accuracy').notNull().default(0),
+  keyPasses: integer('key_passes').notNull().default(0),
+  dribblesCompleted: integer('dribbles_completed').notNull().default(0),
+  tackles: integer('tackles').notNull().default(0),
+  interceptions: integer('interceptions').notNull().default(0),
+  yellowCards: integer('yellow_cards').notNull().default(0),
+  redCards: integer('red_cards').notNull().default(0),
+  freeKicks: integer('free_kicks').notNull().default(0),
+  penaltiesScored: integer('penalties_scored').notNull().default(0),
+  penaltiesTaken: integer('penalties_taken').notNull().default(0),
+  throwIns: integer('throw_ins').notNull().default(0),
+  distanceKm: real('distance_km').notNull().default(0),
+  topSpeedKmh: real('top_speed_kmh').notNull().default(0)
+});
+
+export const managerStints = sqliteTable('manager_stints', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  managerId: text('manager_id').notNull().references(() => managers.id),
+  teamId: text('team_id').notNull().references(() => teams.id),
+  startedAt: text('started_at').notNull(),
+  endedAt: text('ended_at'),
+  isCurrent: integer('is_current', { mode: 'boolean' }).notNull().default(false),
+  matches: integer('matches').notNull().default(0),
+  wins: integer('wins').notNull().default(0),
+  draws: integer('draws').notNull().default(0),
+  losses: integer('losses').notNull().default(0),
+  trophies: text('trophies'),
+  notes: text('notes')
+});
+
+export const playerCareer = sqliteTable('player_career', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  playerId: text('player_id').notNull().references(() => players.id),
+  teamId: text('team_id').notNull().references(() => teams.id),
+  startedAt: text('started_at').notNull(),
+  endedAt: text('ended_at'),
+  isCurrent: integer('is_current', { mode: 'boolean' }).notNull().default(false),
+  appearances: integer('appearances').notNull().default(0),
+  goals: integer('goals').notNull().default(0),
+  assists: integer('assists').notNull().default(0)
 });
 
 export const providerMappings = sqliteTable('provider_mappings', {

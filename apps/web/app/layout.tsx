@@ -17,9 +17,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <a href="/">Matches</a>
               <a href="/standings">Tables</a>
               <a href="/live">Live</a>
+              <a href="/teams">Teams</a>
               <a href="/players">Players</a>
+              <a href="/managers">Managers</a>
               <a href="/narrative">Narrative</a>
-              <a href="/pipeline">Pipeline</a>
               <a href="/capabilities">API</a>
             </div>
           </nav>
