@@ -7,6 +7,7 @@ Footie is a pnpm/turbo TypeScript monorepo organized around a canonical football
 - Canonical layers: raw ingestion -> normalization -> validation -> publish -> API/product surfaces.
 - Core workers: orchestrator, fixture/schedule, ingestion, entity-resolution, normalization, validation, enrichment, publishing, monitoring, narrative.
 - Public contracts must never leak provider-specific payloads.
+- Default SQLite path is repo-root `footie.db`; the API bootstraps schema and seed data there in non-production dev runs.
 
 ## Index
 - Architecture: `docs/memory/architecture.md`

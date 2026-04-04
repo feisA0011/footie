@@ -7,3 +7,9 @@
 - Scaffolded first milestone packages/apps/services with canonical domain contracts, ingestion pipeline foundations, orchestration worker graph, API capabilities route, and UI primitives.
 - Added dependency-light workspace validation scripts so lint/typecheck/build checks can run before registry access is fixed.
 - Attempted `pnpm install`, but npm registry access returned 403 for `@types/node`; documented as an environment blocker.
+
+## 2026-04-04
+- Fixed dev bootstrap drift where `services/api` created an empty package-local SQLite file instead of using the repo-root database.
+- Added non-production API database bootstrap so schema and sample data are created automatically before repositories open.
+- Hardened the web homepage against invalid `/api/matches` and `/api/search` payloads so client state does not crash on backend failures.
+- Updated Turbo dev to build workspace dependencies before launching persistent tasks.

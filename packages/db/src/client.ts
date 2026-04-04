@@ -1,9 +1,9 @@
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { resolve } from 'node:path';
 import * as schema from './schema/index.js';
+import { resolveDbPath } from './path.js';
 
-const DB_PATH = process.env['FOOTIE_DB_PATH'] ?? resolve(process.cwd(), 'footie.db');
+const DB_PATH = resolveDbPath();
 
 let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
 

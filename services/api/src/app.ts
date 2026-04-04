@@ -1,6 +1,5 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import { resolve } from 'node:path';
 import { buildApiSnapshot, getHealthResponse } from './server.js';
 import { getCapabilitiesResponse } from './routes/capabilities.js';
 import {
@@ -8,15 +7,20 @@ import {
   publishValidatedBatch, validateNormalizedBatch
 } from '@footie/data-ingestion';
 import {
-  getDb, matchRepo, teamRepo, competitionRepo, seasonRepo, playerRepo, searchRepo,
-  teamDetailRepo, playerDetailRepo, managerRepo
+  bootstrapDevDatabase, getDb, matchRepo, teamRepo, competitionRepo, seasonRepo, playerRepo, searchRepo,
+  teamDetailRepo, playerDetailRepo, managerRepo, resolveDbPath
 } from '@footie/db';
 import {
   startLiveMatch, getLiveMatch, getAllLiveMatches, type MatchEvent
 } from './simulation/live-engine.js';
 
 // ─── DB ───────────────────────────────────────────────────────────────────────
-process.env['FOOTIE_DB_PATH'] ??= resolve(process.cwd(), 'footie.db');
+process.env['FOOTIE_DB_PATH'] ??= resolveDbPath();
+
+if (process.env['NODE_ENV'] !== 'production') {
+  bootstrapDevDatabase();
+}
+
 const db = getDb();
 const matchR = matchRepo(db);
 const teamR = teamRepo(db);

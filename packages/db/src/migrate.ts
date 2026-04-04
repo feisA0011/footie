@@ -1,7 +1,8 @@
 import Database from 'better-sqlite3';
-import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { resolveDbPath } from './path.js';
 
-const DB_PATH = process.env['FOOTIE_DB_PATH'] ?? resolve(process.cwd(), 'footie.db');
+const DB_PATH = resolveDbPath();
 
 export const migrate = () => {
   const db = new Database(DB_PATH);
@@ -131,4 +132,6 @@ export const migrate = () => {
   console.log(`Database migrated: ${DB_PATH}`);
 };
 
-migrate();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  migrate();
+}

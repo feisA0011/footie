@@ -1,8 +1,9 @@
 import Database from 'better-sqlite3';
-import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { createCanonicalId } from '@footie/domain';
+import { resolveDbPath } from './path.js';
 
-const DB_PATH = process.env['FOOTIE_DB_PATH'] ?? resolve(process.cwd(), 'footie.db');
+const DB_PATH = resolveDbPath();
 const NOW = new Date().toISOString();
 
 // ─── Competitions ─────────────────────────────────────────────────────────────
@@ -268,7 +269,7 @@ const MANAGER_STINTS = [
 ];
 
 // ─── Seed function ────────────────────────────────────────────────────────────
-const seed = () => {
+export const seed = () => {
   const db = new Database(DB_PATH);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
@@ -346,4 +347,6 @@ const seed = () => {
   console.log(`Seeded: ${COMPETITIONS.length} comps, ${TEAMS.length} teams, ${MANAGERS.length} managers, ${PLAYERS.length} players, ${matchCount} matches`);
 };
 
-seed();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  seed();
+}
