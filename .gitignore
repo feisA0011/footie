@@ -9,3 +9,4 @@ coverage
 *.db-wal
 *.tsbuildinfo
 .codex
+.vercel
